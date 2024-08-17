@@ -1,8 +1,6 @@
 import { jest } from '@jest/globals';
 import { register } from '../controllers/userController.mjs';
-import User from '../models/user.mjs';
 
-jest.mock('../models/user.mjs');
 
 describe('User Controller', () => {
   test('should create a new user', async () => {

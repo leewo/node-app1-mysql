@@ -1,6 +1,5 @@
 // index.mjs
 import express from 'express';
-import mongoose from 'mongoose';
 import v1Routes from './routes/v1/index.mjs';
 import connectToMySQL from './connect-mysql.mjs';
 import cors from 'cors';
@@ -30,7 +29,9 @@ import { fileURLToPath } from 'url';
 logger.info(process.env.JWT_SECRET);
 logger.info(process.env.NODE_ENV);
 logger.info(process.env.PORT);
-logger.info(process.env.MONGODB_URI);
+logger.info(process.env.MYSQL_HOST);
+logger.info(process.env.MYSQL_USER);
+logger.info(process.env.MYSQL_DATABASE);
 
 async function startServer() {
   logger.info('try to connect connectToMySQL()');

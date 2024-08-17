@@ -1,4 +1,5 @@
 /node_modules
-/mongoDB cloud pw.txt
 /.env
 /.vs
+/obj
+/bin
