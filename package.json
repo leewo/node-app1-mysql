@@ -1,0 +1,33 @@
+{
+  "name": "node-app1-mysql",
+  "version": "0.0.1",
+  "description": "node-app1-mysql",
+  "main": "index.mjs",
+  "author": {
+    "name": ""
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "nodemon index.mjs",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "moduleFileExtensions": [
+      "js",
+      "mjs"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.mjs",
+      "**/?(*.)+(spec|test).mjs"
+    ]
+  },
+  "type": "module",
+  "license": "ISC",
+  "eslintConfig": {
+  },
+  "devDependencies": {
+    "eslint": "^8.21.0"
+  }
+}
