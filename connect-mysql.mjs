@@ -1,3 +1,4 @@
+// connect-mysql.mjs
 import mysql from 'mysql2/promise';
 import { Client } from 'ssh2';
 import logger from './logger.mjs';
@@ -32,9 +33,23 @@ export async function connectToMySQL(SSH_CONFIG, MYSQL_CONFIG) {
                         pool = mysql.createPool(poolConfig);
                         logger.info('MySQL connection pool created');
 
-                        // Test the connection
-                        await pool.getConnection();
-                        logger.info('Successfully connected to MySQL database through SSH tunnel');
+                        //// Test the connection and execute a query
+                        //const connection = await pool.getConnection();
+                        //try {
+                        //    logger.info('Successfully connected to MySQL database through SSH tunnel');
+
+                        //    // Execute the query
+                        //    const [rows, fields] = await connection.execute('SELECT * FROM TL_USERS');
+                        //    logger.info('Query result:', rows);
+
+                        //} catch (queryError) {
+                        //    logger.error('Error executing query:', queryError);
+                        //    reject(queryError);
+                        //} finally {
+                        //    // Release the connection back to the pool
+                        //    connection.release();
+                        //}
+
                         resolve();
                     } catch (error) {
                         logger.error('Error connecting to MySQL:', error);

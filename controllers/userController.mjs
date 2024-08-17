@@ -17,7 +17,8 @@ export const register = async (req, res) => {
         };
 
         const pool = getPool();
-        const [result] = await pool.execute(
+        const connection = await pool.getConnection();
+        const [result] = await connection.execute(
             'INSERT INTO TL_USERS (USER_ID, USER_NAME, PASSWORD) VALUES (?, ?, ?)',
             [user.user_id, user.user_name, user.password]
         );
@@ -38,7 +39,8 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const pool = getPool();
-        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.body.email]);
+        const connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.body.email]);
         if (users.length === 0) {
             throw new AppError('Invalid email or password', 401);
         }
@@ -80,7 +82,8 @@ export const logout = (req, res) => {
 export const getUser = async (req, res, next) => {
     try {
         const pool = getPool();
-        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        const connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
@@ -93,7 +96,8 @@ export const getUser = async (req, res, next) => {
 export const changePassword = async (req, res, next) => {
     try {
         const pool = getPool();
-        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        const connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
@@ -103,7 +107,7 @@ export const changePassword = async (req, res, next) => {
             throw new AppError('Current password is incorrect', 400);
         }
         const hashedNewPassword = await bcrypt.hash(req.body.newPassword, 10);
-        await pool.execute('UPDATE TL_USERS SET password = ? WHERE id = ?', [hashedNewPassword, user.id]);
+        await connection.execute('UPDATE TL_USERS SET password = ? WHERE id = ?', [hashedNewPassword, user.id]);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
         next(new AppError('Error changing password', 500));
@@ -113,7 +117,8 @@ export const changePassword = async (req, res, next) => {
 export const updateUserInfo = async (req, res, next) => {
     try {
         const pool = getPool();
-        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        const connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
@@ -121,7 +126,7 @@ export const updateUserInfo = async (req, res, next) => {
         const oldUserInfo = { name: user.name, email: user.email };
         const newName = req.body.name || user.name;
         const newEmail = req.body.email || user.email;
-        await pool.execute('UPDATE TL_USERS SET name = ?, email = ? WHERE id = ?', [newName, newEmail, user.id]);
+        await connection.execute('UPDATE TL_USERS SET name = ?, email = ? WHERE id = ?', [newName, newEmail, user.id]);
         logger.info(`User info updated. Old: ${JSON.stringify(oldUserInfo)}, New: ${JSON.stringify({ name: newName, email: newEmail })}`);
         res.status(200).json({ message: 'User information updated successfully' });
     } catch (error) {
