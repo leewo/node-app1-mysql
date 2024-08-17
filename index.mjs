@@ -1,30 +1,6 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import dotenvSafe from 'dotenv-safe';
-dotenvSafe.config({
-    allowEmptyValues: true,
-    example: '.env.example',
-});
-
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, '.env') });
-
-console.log('Environment variables loaded:', {
-    SSH_HOST: process.env.SSH_HOST,
-    SSH_PORT: process.env.SSH_PORT,
-    SSH_USER: process.env.SSH_USER,
-    MYSQL_HOST: process.env.MYSQL_HOST,
-    MYSQL_USER: process.env.MYSQL_USER,
-    MYSQL_DATABASE: process.env.MYSQL_DATABASE
-});
-
 // index.mjs
+import { loadEnv } from './config.mjs';
+
 import express from 'express';
 import v1Routes from './routes/v1/index.mjs';
 import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
@@ -42,13 +18,12 @@ import yaml from 'js-yaml';
 
 import path from 'path';
 
-logger.info(process.env.JWT_SECRET);
-logger.info(process.env.NODE_ENV);
-logger.info(process.env.PORT);
-
 async function startServer() {
+    const config = loadEnv();
+    logger.info('Environment loaded:', config);
+
     logger.info('try to connect connectToMySQL()');
-    await connectToMySQL();
+    await connectToMySQL(config.SSH_CONFIG, config.MYSQL_CONFIG);
     logger.info('after connectToMySQL()');
 
     const app = express();
@@ -63,7 +38,7 @@ async function startServer() {
 
         // CORS 미들웨어를 추가
         const corsOptions = {
-            origin: process.env.CORS_ORIGIN.split(','),   // CORS_ORIGIN 환경 변수를 사용하여 허용할 오리진을 설정 (ex: http://localhost:3000). 여러 개의 오리진을 허용하려면 쉼표로 구분 (ex: http://localhost:3000,http://localhost:3001)
+            origin: config.CORS_ORIGIN.split(','),   // CORS_ORIGIN 환경 변수를 사용하여 허용할 오리진을 설정 (ex: http://localhost:3000). 여러 개의 오리진을 허용하려면 쉼표로 구분 (ex: http://localhost:3000,http://localhost:3001)
             credentials: true,                            // 클라이언트에서 쿠키를 전송하려면 credentials 옵션을 true로 설정해야 한다
             optionsSuccessStatus: 200                     // CORS 요청에 대한 응답 상태 코드를 200으로 설정
         };
@@ -140,7 +115,7 @@ async function startServer() {
         }
     }
 
-    const port = process.env.PORT;
+    const port = config.PORT;
     app.listen(port, () => {
         logger.info(`Server is running on port ${port}`);
     });
