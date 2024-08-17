@@ -13,17 +13,14 @@ export const authenticateToken = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const pool = getPool();
         const connection = await pool.getConnection();
-
-        try {
-            const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [decoded.USER_ID]);
-            if (users.length === 0) {
-                throw new AppError('User not found', 404);
-            }
-            req.user = { USER_ID: users[0].USER_ID, SEQ: users[0].SEQ };
-            next();
-        } finally {
-            if (connection) connection.release();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [decoded.USER_ID]);
+        const length = users.length;
+        if (connection) connection.release();
+        if (length === 0) {
+            return next(new AppError('User not found', 404));
         }
+        req.user = { USER_ID: users[0].USER_ID, SEQ: users[0].SEQ };
+        next();
     } catch (error) {
         next(error);
     }
