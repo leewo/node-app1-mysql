@@ -117,9 +117,9 @@ async function startServer() {
         }
     }
 
-    const port = config.PORT;
-    app.listen(port, () => {
-        logger.info(`Server is running on port ${port}`);
+    console.log(config.LISTEN_PORT);
+    app.listen(config.LISTEN_PORT, () => {
+        logger.info(`Server is running on port ${config.LISTEN_PORT}`);
     });
 }
 

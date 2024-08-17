@@ -11,7 +11,7 @@ export function loadEnv() {
     dotenv.config({ path: join(__dirname, '.env') });
 
     const requiredEnvVars = [
-        'JWT_SECRET', 'NODE_ENV', 'PORT', 'SSH_HOST', 'SSH_PORT', 'SSH_USER',
+        'JWT_SECRET', 'NODE_ENV', 'LISTEN_PORT', 'SSH_HOST', 'SSH_PORT', 'SSH_USER',
         'MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'
     ];
 
@@ -29,6 +29,8 @@ export function loadEnv() {
         throw new Error(`Private key file not found at ${privateKeyPath}`);
     }
 
+    console.log('Listening on port:', process.env.LISTEN_PORT);
+
     console.log('SSH Config:', {
         host: process.env.SSH_HOST,
         port: process.env.SSH_PORT,
@@ -38,7 +40,7 @@ export function loadEnv() {
     return {
         JWT_SECRET: process.env.JWT_SECRET,
         NODE_ENV: process.env.NODE_ENV,
-        PORT: parseInt(process.env.PORT, 10),
+        LISTEN_PORT: process.env.LISTEN_PORT,
         SSH_CONFIG: {
             host: process.env.SSH_HOST,
             port: process.env.SSH_PORT || 22,

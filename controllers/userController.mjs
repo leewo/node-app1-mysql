@@ -9,16 +9,29 @@ import { getPool } from '../connect-mysql.mjs';
 export const register = async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+        const user = {
+            user_id: req.body.email,
+            user_name: req.body.name,
+            password: hashedPassword
+        };
+
         const pool = getPool();
         const [result] = await pool.execute(
-            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-            [req.body.name, req.body.email, hashedPassword]
+            'INSERT INTO TL_USERS (USER_ID, USER_NAME, PASSWORD) VALUES (?, ?, ?)',
+            [user.user_id, user.user_name, user.password]
         );
+
         logger.info('User registered successfully:', { userId: result.insertId });
+
         res.status(201).json({ message: 'User registered successfully', userId: result.insertId });
     } catch (error) {
         logger.error('Registration error:', error);
-        res.status(400).json({ message: 'Error registering user', error: error.message });
+        if (error.code === 'ETIMEDOUT') {
+            res.status(504).json({ message: 'Database connection timed out. Please try again later.' });
+        } else {
+            res.status(500).json({ message: 'Error registering user', error: error.message });
+        }
     }
 };
 
@@ -90,7 +103,7 @@ export const changePassword = async (req, res, next) => {
             throw new AppError('Current password is incorrect', 400);
         }
         const hashedNewPassword = await bcrypt.hash(req.body.newPassword, 10);
-        await pool.execute('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, user.id]);
+        await pool.execute('UPDATE TL_USERS SET password = ? WHERE id = ?', [hashedNewPassword, user.id]);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
         next(new AppError('Error changing password', 500));
@@ -108,7 +121,7 @@ export const updateUserInfo = async (req, res, next) => {
         const oldUserInfo = { name: user.name, email: user.email };
         const newName = req.body.name || user.name;
         const newEmail = req.body.email || user.email;
-        await pool.execute('UPDATE users SET name = ?, email = ? WHERE id = ?', [newName, newEmail, user.id]);
+        await pool.execute('UPDATE TL_USERS SET name = ?, email = ? WHERE id = ?', [newName, newEmail, user.id]);
         logger.info(`User info updated. Old: ${JSON.stringify(oldUserInfo)}, New: ${JSON.stringify({ name: newName, email: newEmail })}`);
         res.status(200).json({ message: 'User information updated successfully' });
     } catch (error) {
