@@ -29,9 +29,37 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="babel.config.cjs" />
+    <Content Include="connect-mysql.mjs" />
     <Content Include="index.mjs" />
+    <Content Include="logger.mjs" />
+    <Content Include="nodemon.json" />
     <Content Include="package.json" />
     <Content Include="README.md" />
+    <Content Include="swaggerConfig.js" />
+    <Content Include="controllers\userController.mjs" />
+    <Content Include="docs\index.html" />
+    <Content Include="docs\swagger.json" />
+    <Content Include="docs\swagger.yaml" />
+    <Content Include="middleware\auth.mjs" />
+    <Content Include="middleware\errorHandler.mjs" />
+    <Content Include="middleware\validators.mjs" />
+    <Content Include="routes\v1\index.mjs" />
+    <Content Include="routes\v1\otherRoutes.mjs" />
+    <Content Include="routes\v1\userRoutes.mjs" />
+    <Content Include="schema\tables.sql" />
+    <Content Include="tests\user.test.mjs" />
+    <Content Include="utils\errors.mjs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="controllers\" />
+    <Folder Include="docs\" />
+    <Folder Include="middleware\" />
+    <Folder Include="routes\" />
+    <Folder Include="routes\v1\" />
+    <Folder Include="schema\" />
+    <Folder Include="tests\" />
+    <Folder Include="utils\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>
