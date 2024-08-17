@@ -7,20 +7,21 @@ import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
 
 export const register = async (req, res) => {
+    let connection;
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
         const user = {
-            user_id: req.body.email,
-            user_name: req.body.name,
-            password: hashedPassword
+            USER_ID: req.body.email,
+            USER_NAME: req.body.name,
+            PASSWORD: hashedPassword
         };
 
         const pool = getPool();
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         const [result] = await connection.execute(
             'INSERT INTO TL_USERS (USER_ID, USER_NAME, PASSWORD) VALUES (?, ?, ?)',
-            [user.user_id, user.user_name, user.password]
+            [user.USER_ID, user.USER_NAME, user.PASSWORD]
         );
 
         logger.info('User registered successfully:', { userId: result.insertId });
@@ -33,25 +34,28 @@ export const register = async (req, res) => {
         } else {
             res.status(500).json({ message: 'Error registering user', error: error.message });
         }
+    } finally {
+        if (connection) connection.release();
     }
 };
 
 export const login = async (req, res) => {
+    let connection;
     try {
         const pool = getPool();
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.body.email]);
         if (users.length === 0) {
             throw new AppError('Invalid email or password', 401);
         }
         const user = users[0];
-        const validPassword = await bcrypt.compare(req.body.password, user.password);
+        const validPassword = await bcrypt.compare(req.body.password, user.PASSWORD);
         if (!validPassword) {
             throw new AppError('Invalid email or password', 401);
         }
 
         const token = jwt.sign(
-            { _id: user._id },
+            { _id: user.SEQ },
             process.env.JWT_SECRET,   // JWT_SECRET 환경 변수를 사용하여 비밀 키를 가져옴. dotenv를 사용하여 환경 변수를 로드. JWT_SECRET을 .env 파일에 설정해야 한다
             { expiresIn: '1h' }
         );
@@ -64,13 +68,15 @@ export const login = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000                     // maxAge 옵션을 사용하여 쿠키의 만료 시간을 설정. 이 경우 24시간
         });
 
-        logger.info('User logged in successfully:', { userId: user._id });
+        logger.info('User logged in successfully:', { userId: user.SEQ });
 
         res.status(200).json({ message: 'User logged in successfully' });
     } catch (error) {
         logger.error('Login error:', { error: 'details' });
 
         res.status(400).json({ message: 'Error logging in', error: error.message });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -80,57 +86,66 @@ export const logout = (req, res) => {
 }
 
 export const getUser = async (req, res, next) => {
+    let connection;
     try {
         const pool = getPool();
-        const connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
         res.status(200).json({ message: 'User retrieved successfully', user: users[0] });
     } catch (error) {
         next(new AppError('Error getting user', 500));
+    } finally {
+        if (connection) connection.release();
     }
 };
 
 export const changePassword = async (req, res, next) => {
+    let connection;
     try {
         const pool = getPool();
-        const connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
         const user = users[0];
-        const validPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+        const validPassword = await bcrypt.compare(req.body.currentPassword, user.PASSWORD);
         if (!validPassword) {
             throw new AppError('Current password is incorrect', 400);
         }
         const hashedNewPassword = await bcrypt.hash(req.body.newPassword, 10);
-        await connection.execute('UPDATE TL_USERS SET password = ? WHERE id = ?', [hashedNewPassword, user.id]);
+        await connection.execute('UPDATE TL_USERS SET password = ? WHERE USER_ID = ?', [hashedNewPassword, user.USER_ID]);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
         next(new AppError('Error changing password', 500));
+    } finally {
+        if (connection) connection.release();
     }
 };
 
 export const updateUserInfo = async (req, res, next) => {
+    let connection;
     try {
         const pool = getPool();
-        const connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.id]);
+        connection = await pool.getConnection();
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
         const user = users[0];
-        const oldUserInfo = { name: user.name, email: user.email };
-        const newName = req.body.name || user.name;
-        const newEmail = req.body.email || user.email;
-        await connection.execute('UPDATE TL_USERS SET name = ?, email = ? WHERE id = ?', [newName, newEmail, user.id]);
+        const oldUserInfo = { name: user.USER_NAME, email: user.USER_ID};
+        const newName = req.body.name || user.USER_NAME;
+        const newEmail = req.body.email || user.USER_ID;
+        await connection.execute('UPDATE TL_USERS SET USER_NAME = ?, USER_ID = ? WHERE USER_ID = ?', [newName, newEmail, user.USER_ID]);
         logger.info(`User info updated. Old: ${JSON.stringify(oldUserInfo)}, New: ${JSON.stringify({ name: newName, email: newEmail })}`);
         res.status(200).json({ message: 'User information updated successfully' });
     } catch (error) {
         logger.error(`Error updating user information: ${error.message}`);
         next(new AppError('Error updating user information', 500));
+    } finally {
+        if (connection) connection.release();
     }
 };
