@@ -133,7 +133,7 @@ export const updateUserInfo = async (req, res, next) => {
         connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
-            return next(new AppError('User not found', 404));
+            throw new AppError('User not found', 404);
         }
         const user = users[0];
         const oldUserInfo = { name: user.USER_NAME, email: user.USER_ID};

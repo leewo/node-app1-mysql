@@ -9,20 +9,22 @@ export const authenticateToken = async (req, res, next) => {
         return next(new AppError('Unauthorized - No token provided', 401));
     }
 
-    let connection;
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const pool = getPool();
-        connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [decoded.USER_ID]);
-        if (users.length === 0) {
-            return next(new AppError('User not found', 404));
+        const connection = await pool.getConnection();
+
+        try {
+            const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [decoded.USER_ID]);
+            if (users.length === 0) {
+                throw new AppError('User not found', 404);
+            }
+            req.user = { USER_ID: users[0].USER_ID, SEQ: users[0].SEQ };
+            next();
+        } finally {
+            if (connection) connection.release();
         }
-        req.user = { id: users[0].id };
-        next();
     } catch (error) {
         next(error);
-    } finally {
-        if (connection) connection.release();
     }
 };
