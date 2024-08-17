@@ -17,12 +17,21 @@ if (!existsSync(privateKeyPath)) {
     throw new Error(`Private key file not found at ${privateKeyPath}`);
 }
 
+console.log('SSH Config:', {
+    host: process.env.SSH_HOST,
+    port: process.env.SSH_PORT,
+    username: process.env.SSH_USER
+});
+
 const sshConfig = {
     host: process.env.SSH_HOST,
     port: process.env.SSH_PORT || 22,
     username: process.env.SSH_USER,
-    privateKey: readFileSync(privateKeyPath)
+    privateKey: readFileSync(privateKeyPath),
+    debug: console.log  // SSH 연결 과정의 디버그 정보를 콘솔에 출력
 };
+
+console.log('SSH Config in connect-mysql.mjs:', sshConfig);
 
 const dbConfig = {
     host: process.env.MYSQL_HOST || 'localhost',
@@ -77,7 +86,14 @@ export async function connectToMySQL() {
 
         ssh.on('error', (err) => {
             logger.error('SSH connection error:', err);
+            logger.error('SSH config:', {
+                host: sshConfig.host,
+                port: sshConfig.port,
+                username: sshConfig.username,
+                privateKeyPath: privateKeyPath
+            });
             reject(err);
+
         });
 
         ssh.connect(sshConfig);

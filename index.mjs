@@ -1,12 +1,3 @@
-// index.mjs
-import express from 'express';
-import v1Routes from './routes/v1/index.mjs';
-import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
-import cors from 'cors';
-import { errorHandler, handleJWTError } from './middleware/errorHandler.mjs';
-import logger from './logger.mjs';
-import cookieParser from 'cookie-parser';
-
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -16,6 +7,32 @@ dotenvSafe.config({
     example: '.env.example',
 });
 
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '.env') });
+
+console.log('Environment variables loaded:', {
+    SSH_HOST: process.env.SSH_HOST,
+    SSH_PORT: process.env.SSH_PORT,
+    SSH_USER: process.env.SSH_USER,
+    MYSQL_HOST: process.env.MYSQL_HOST,
+    MYSQL_USER: process.env.MYSQL_USER,
+    MYSQL_DATABASE: process.env.MYSQL_DATABASE
+});
+
+// index.mjs
+import express from 'express';
+import v1Routes from './routes/v1/index.mjs';
+import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
+import cors from 'cors';
+import { errorHandler, handleJWTError } from './middleware/errorHandler.mjs';
+import logger from './logger.mjs';
+import cookieParser from 'cookie-parser';
+
 // swagger-jsdoc와 swagger-ui-express 패키지를 import
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
@@ -24,18 +41,10 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 logger.info(process.env.JWT_SECRET);
 logger.info(process.env.NODE_ENV);
 logger.info(process.env.PORT);
-logger.info(process.env.SSH_HOST);
-logger.info(process.env.SSH_USER);
-//logger.info(process.env.SSH_PASSWORD);
-logger.info(process.env.MYSQL_HOST);
-logger.info(process.env.MYSQL_USER);
-//logger.info(process.env.MYSQL_PASSWORD);
-logger.info(process.env.MYSQL_DATABASE);
 
 async function startServer() {
     logger.info('try to connect connectToMySQL()');
