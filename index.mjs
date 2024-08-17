@@ -1,7 +1,7 @@
 // index.mjs
 import express from 'express';
 import v1Routes from './routes/v1/index.mjs';
-import { connectToMySQL, getPoolConfig } from './connect-mysql.mjs';
+import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
 import cors from 'cors';
 import { errorHandler, handleJWTError } from './middleware/errorHandler.mjs';
 import logger from './logger.mjs';
@@ -29,19 +29,15 @@ import { fileURLToPath } from 'url';
 logger.info(process.env.JWT_SECRET);
 logger.info(process.env.NODE_ENV);
 logger.info(process.env.PORT);
+logger.info(process.env.SSH_HOST);
+logger.info(process.env.SSH_USER);
+//logger.info(process.env.SSH_PASSWORD);
 logger.info(process.env.MYSQL_HOST);
 logger.info(process.env.MYSQL_USER);
+//logger.info(process.env.MYSQL_PASSWORD);
 logger.info(process.env.MYSQL_DATABASE);
 
 async function startServer() {
-    const poolConfig = getPoolConfig();
-    logger.info('MySQL connection config:', {
-        host: poolConfig.host,
-        user: poolConfig.user,
-        database: poolConfig.database,
-        connectionLimit: poolConfig.connectionLimit
-    });
-
     logger.info('try to connect connectToMySQL()');
     await connectToMySQL();
     logger.info('after connectToMySQL()');
@@ -145,7 +141,7 @@ startServer().catch(console.error);
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-    await pool.end();
+    await closeConnections();
     logger.info('MySQL connection closed.');
     process.exit(0);
 });
