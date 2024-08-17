@@ -63,8 +63,8 @@ export async function connectToMySQL() {
 
                     const poolConfig = {
                         ...dbConfig,
-                        stream: stream,
-                        ssl: { rejectUnauthorized: false }
+                        stream,
+                        ssl: false // SSL을 사용하지 않도록 설정
                     };
 
                     try {
