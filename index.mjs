@@ -1,6 +1,8 @@
 // index.mjs
 import { loadEnv } from './config.mjs';
 
+import { fileURLToPath } from 'url';
+
 import express from 'express';
 import v1Routes from './routes/v1/index.mjs';
 import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
@@ -38,7 +40,7 @@ async function startServer() {
 
         // CORS 미들웨어를 추가
         const corsOptions = {
-            origin: config.CORS_ORIGIN.split(','),   // CORS_ORIGIN 환경 변수를 사용하여 허용할 오리진을 설정 (ex: http://localhost:3000). 여러 개의 오리진을 허용하려면 쉼표로 구분 (ex: http://localhost:3000,http://localhost:3001)
+            origin: config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : '*',   // CORS_ORIGIN 환경 변수를 사용하여 허용할 오리진을 설정 (ex: http://localhost:3000). 여러 개의 오리진을 허용하려면 쉼표로 구분 (ex: http://localhost:3000,http://localhost:3001)
             credentials: true,                            // 클라이언트에서 쿠키를 전송하려면 credentials 옵션을 true로 설정해야 한다
             optionsSuccessStatus: 200                     // CORS 요청에 대한 응답 상태 코드를 200으로 설정
         };

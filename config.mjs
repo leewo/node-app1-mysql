@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 
-// ÇöÀç ¸ğµâÀÇ µğ·ºÅä¸® °æ·Î¸¦ ¾ò½À´Ï´Ù.
+// í˜„ì¬ ëª¨ë“ˆì˜ ë””ë ‰í† ë¦¬ ê²½ë¡œë¥¼ ì–»ìŠµë‹ˆë‹¤.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -21,10 +21,10 @@ export function loadEnv() {
         throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     }
 
-    // ÇÁ·ÎÁ§Æ® ·çÆ® µğ·ºÅä¸® (index.mjs°¡ ÀÖ´Â À§Ä¡)¸¦ ±âÁØÀ¸·Î private key °æ·Î¸¦ ¼³Á¤ÇÕ´Ï´Ù.
+    // í”„ë¡œì íŠ¸ ë£¨íŠ¸ ë””ë ‰í† ë¦¬ (index.mjsê°€ ìˆëŠ” ìœ„ì¹˜)ë¥¼ ê¸°ì¤€ìœ¼ë¡œ private key ê²½ë¡œë¥¼ ì„¤ì •í•©ë‹ˆë‹¤.
     const privateKeyPath = join(__dirname, 'private_key', 'id_rsa');
 
-    // private key ÆÄÀÏ Á¸Àç ¿©ºÎ¸¦ È®ÀÎÇÕ´Ï´Ù.
+    // private key íŒŒì¼ ì¡´ì¬ ì—¬ë¶€ë¥¼ í™•ì¸í•©ë‹ˆë‹¤.
     if (!existsSync(privateKeyPath)) {
         throw new Error(`Private key file not found at ${privateKeyPath}`);
     }
@@ -41,10 +41,10 @@ export function loadEnv() {
         PORT: parseInt(process.env.PORT, 10),
         SSH_CONFIG: {
             host: process.env.SSH_HOST,
-            port: parseInt(process.env.SSH_PORT, 10),
+            port: process.env.SSH_PORT || 22,
             username: process.env.SSH_USER,
             privateKey: readFileSync(privateKeyPath),
-            debug: console.log  // SSH ¿¬°á °úÁ¤ÀÇ µğ¹ö±× Á¤º¸¸¦ ÄÜ¼Ö¿¡ Ãâ·Â
+            debug: console.log  // SSH ì—°ê²° ê³¼ì •ì˜ ë””ë²„ê·¸ ì •ë³´ë¥¼ ì½˜ì†”ì— ì¶œë ¥
         },
         MYSQL_CONFIG: {
             host: process.env.MYSQL_HOST,
@@ -52,6 +52,8 @@ export function loadEnv() {
             password: process.env.MYSQL_PASSWORD,
             database: process.env.MYSQL_DATABASE,
             port: parseInt(process.env.MYSQL_PORT, 10) || 3306
-        }
+
+        },
+        CORS_ORIGIN: process.env.CORS_ORIGIN
     };
 }

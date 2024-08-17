@@ -4,7 +4,7 @@ import logger from './logger.mjs';
 
 let pool;
 
-export async function connectToMySQL(sshConfig, dbConfig) {
+export async function connectToMySQL(SSH_CONFIG, MYSQL_CONFIG) {
     return new Promise((resolve, reject) => {
         const ssh = new Client();
 
@@ -14,8 +14,8 @@ export async function connectToMySQL(sshConfig, dbConfig) {
             ssh.forwardOut(
                 '127.0.0.1',
                 0,
-                dbConfig.host,
-                dbConfig.port,
+                MYSQL_CONFIG.host,
+                MYSQL_CONFIG.port,
                 async (err, stream) => {
                     if (err) {
                         ssh.end();
@@ -23,7 +23,7 @@ export async function connectToMySQL(sshConfig, dbConfig) {
                     }
 
                     const poolConfig = {
-                        ...dbConfig,
+                        ...MYSQL_CONFIG,
                         stream,
                         ssl: false // SSL을 사용하지 않도록 설정
                     };
@@ -45,19 +45,23 @@ export async function connectToMySQL(sshConfig, dbConfig) {
             );
         });
 
+        ssh.on('debug', (message) => {
+            console.log('SSH Debug:', message);
+        });
+
         ssh.on('error', (err) => {
             logger.error('SSH connection error:', err);
             logger.error('SSH config:', {
-                host: sshConfig.host,
-                port: sshConfig.port,
-                username: sshConfig.username,
-                privateKeyPath: privateKeyPath
+                host: SSH_CONFIG.host,
+                port: SSH_CONFIG.port,
+                username: SSH_CONFIG.username,
+                privateKeyPath: SSH_CONFIG.privateKeyPath
             });
             reject(err);
 
         });
 
-        ssh.connect(sshConfig);
+        ssh.connect(SSH_CONFIG);
     });
 }
 
