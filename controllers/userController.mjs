@@ -55,7 +55,7 @@ export const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { _id: user.SEQ },
+            { USER_ID: user.USER_ID },
             process.env.JWT_SECRET,   // JWT_SECRET 환경 변수를 사용하여 비밀 키를 가져옴. dotenv를 사용하여 환경 변수를 로드. JWT_SECRET을 .env 파일에 설정해야 한다
             { expiresIn: '1h' }
         );
