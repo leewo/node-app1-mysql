@@ -7,8 +7,8 @@
     "name": "xiph"
   },
   "scripts": {
-    "start": "node index.mjs",
-    "dev": "nodemon index.mjs",
+    "start": "node -r dotenv/config index.mjs",
+    "dev": "nodemon -r dotenv/config index.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "jest": {
