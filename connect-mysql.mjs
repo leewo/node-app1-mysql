@@ -2,6 +2,7 @@
 import mysql from 'mysql2/promise';
 import { Client } from 'ssh2';
 import logger from './logger.mjs';
+import { getConfig } from './config.mjs';
 
 let pool;
 let sshClient;
@@ -15,7 +16,8 @@ const createPool = (config) => {
     });
 };
 
-const connectToDatabase = async (SSH_CONFIG, MYSQL_CONFIG) => {
+const connectToDatabase = async () => {
+    const { SSH_CONFIG, MYSQL_CONFIG } = getConfig();
     return new Promise((resolve, reject) => {
         sshClient = new Client();
 
@@ -63,17 +65,16 @@ const connectToDatabase = async (SSH_CONFIG, MYSQL_CONFIG) => {
                 privateKeyPath: SSH_CONFIG.privateKeyPath
             });
             reject(err);
-
         });
 
         sshClient.connect(SSH_CONFIG);
     });
 };
 
-export const getPool = async (SSH_CONFIG, MYSQL_CONFIG) => {
+export const getPool = async () => {
     if (!pool) {
         try {
-            await connectToDatabase(SSH_CONFIG, MYSQL_CONFIG);
+            await connectToDatabase();
         } catch (error) {
             logger.error('Failed to connect to the database:', error);
             throw error;
@@ -82,9 +83,9 @@ export const getPool = async (SSH_CONFIG, MYSQL_CONFIG) => {
     return pool;
 };
 
-export const executeQuery = async (query, params, SSH_CONFIG, MYSQL_CONFIG, retries = 3) => {
+export const executeQuery = async (query, params, retries = 3) => {
     try {
-        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const pool = await getPool();
         const [results] = await pool.execute(query, params);
         return results;
     } catch (error) {
@@ -92,7 +93,7 @@ export const executeQuery = async (query, params, SSH_CONFIG, MYSQL_CONFIG, retr
             logger.warn(`Database connection was lost. Retrying... (${retries} attempts left)`);
             pool = null; // Reset the pool
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-            return executeQuery(query, params, SSH_CONFIG, MYSQL_CONFIG, retries - 1);
+            return executeQuery(query, params, retries - 1);
         }
         logger.error('Database query error:', error);
         throw error;

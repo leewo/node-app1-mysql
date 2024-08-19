@@ -4,11 +4,14 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 
-// 현재 모듈의 디렉토리 경로를 얻습니다.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+let globalConfig = null;
+
 export function loadEnv() {
+    if (globalConfig) return globalConfig;
+
     dotenv.config({ path: join(__dirname, '.env') });
 
     const requiredEnvVars = [
@@ -17,28 +20,16 @@ export function loadEnv() {
     ];
 
     const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
     if (missingEnvVars.length > 0) {
         throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     }
 
-    // 프로젝트 루트 디렉토리 (index.mjs가 있는 위치)를 기준으로 private key 경로를 설정합니다.
     const privateKeyPath = join(__dirname, 'private_key', 'id_rsa');
-
-    // private key 파일 존재 여부를 확인합니다.
     if (!existsSync(privateKeyPath)) {
         throw new Error(`Private key file not found at ${privateKeyPath}`);
     }
 
-    console.log('Listening on port:', process.env.LISTEN_PORT);
-
-    console.log('SSH Config:', {
-        host: process.env.SSH_HOST,
-        port: process.env.SSH_PORT,
-        username: process.env.SSH_USER
-    });
-
-    return {
+    globalConfig = {
         JWT_SECRET: process.env.JWT_SECRET,
         NODE_ENV: process.env.NODE_ENV,
         LISTEN_PORT: process.env.LISTEN_PORT,
@@ -47,7 +38,7 @@ export function loadEnv() {
             port: process.env.SSH_PORT || 22,
             username: process.env.SSH_USER,
             privateKey: readFileSync(privateKeyPath),
-            debug: console.log  // SSH 연결 과정의 디버그 정보를 콘솔에 출력
+            debug: console.log
         },
         MYSQL_CONFIG: {
             host: process.env.MYSQL_HOST,
@@ -55,8 +46,23 @@ export function loadEnv() {
             password: process.env.MYSQL_PASSWORD,
             database: process.env.MYSQL_DATABASE,
             port: parseInt(process.env.MYSQL_PORT, 10) || 3306
-
         },
         CORS_ORIGIN: process.env.CORS_ORIGIN
     };
+
+    console.log('Listening on port:', globalConfig.LISTEN_PORT);
+    console.log('SSH Config:', {
+        host: globalConfig.SSH_CONFIG.host,
+        port: globalConfig.SSH_CONFIG.port,
+        username: globalConfig.SSH_CONFIG.username
+    });
+
+    return globalConfig;
+}
+
+export function getConfig() {
+    if (!globalConfig) {
+        throw new Error('Config not loaded. Call loadEnv() first.');
+    }
+    return globalConfig;
 }
