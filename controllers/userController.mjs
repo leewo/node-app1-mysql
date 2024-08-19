@@ -40,9 +40,10 @@ export const login = async (req, res) => {
             throw new AppError('Invalid email or password', 401);
         }
 
+        const { JWT_SECRET } = getConfig();
         const token = jwt.sign(
             { USER_ID: user.USER_ID },
-            process.env.JWT_SECRET,   // JWT_SECRET 환경 변수를 사용하여 비밀 키를 가져옴. dotenv를 사용하여 환경 변수를 로드. JWT_SECRET을 .env 파일에 설정해야 한다
+            JWT_SECRET,
             { expiresIn: '1h' }
         );
 
@@ -58,8 +59,7 @@ export const login = async (req, res) => {
 
         res.status(200).json({ message: 'User logged in successfully' });
     } catch (error) {
-        logger.error('Login error:', { error: 'details' });
-
+        logger.error('Login error:', error);
         res.status(400).json({ message: 'Error logging in', error: error.message });
     } finally {
         if (connection) connection.release();
