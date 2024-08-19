@@ -20,6 +20,8 @@ import yaml from 'js-yaml';
 
 import path from 'path';
 
+import { gracefulShutdown } from './utils/shutdownHandler.mjs';
+
 async function startServer() {
     const config = loadEnv();
     logger.info('Environment loaded:', config);
@@ -125,9 +127,5 @@ async function startServer() {
 
 startServer().catch(console.error);
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    await closeConnections();
-    logger.info('MySQL connection closed.');
-    process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

@@ -109,8 +109,3 @@ export const closeConnections = async () => {
         logger.info('SSH connection closed');
     }
 };
-
-process.on('SIGINT', async () => {
-    await closeConnections();
-    process.exit(0);
-});
