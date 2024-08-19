@@ -27,7 +27,7 @@ async function startServer() {
     logger.info('Environment loaded:', config);
 
     logger.info('try to connect connectToDatabase()');
-    await connectToDatabase(config.SSH_CONFIG, config.MYSQL_CONFIG);
+    await connectToDatabase();
     logger.info('after connectToDatabase()');
 
     const app = express();

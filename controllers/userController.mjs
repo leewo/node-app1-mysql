@@ -6,7 +6,6 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
-import { SSH_CONFIG, MYSQL_CONFIG } from '../config.mjs';
 
 export const register = async (req, res) => {
     try {
@@ -15,9 +14,7 @@ export const register = async (req, res) => {
 
         const result = await executeQuery(
             'INSERT INTO TL_USERS (USER_ID, USER_NAME, PASSWORD) VALUES (?, ?, ?)',
-            [email, name, hashedPassword],
-            SSH_CONFIG,
-            MYSQL_CONFIG
+            [email, name, hashedPassword]
         );
 
         logger.info('User registered successfully:', { userId: result.insertId });
@@ -31,7 +28,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     let connection;
     try {
-        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const pool = await getPool();
         connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.body.email]);
         if (users.length === 0) {
@@ -77,7 +74,7 @@ export const logout = (req, res) => {
 export const getUser = async (req, res, next) => {
     let connection;
     try {
-        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const pool = await getPool();
         connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
@@ -94,7 +91,7 @@ export const getUser = async (req, res, next) => {
 export const changePassword = async (req, res, next) => {
     let connection;
     try {
-        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const pool = await getPool();
         connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
@@ -118,7 +115,7 @@ export const changePassword = async (req, res, next) => {
 export const updateUserInfo = async (req, res, next) => {
     let connection;
     try {
-        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const pool = await getPool();
         connection = await pool.getConnection();
         const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
