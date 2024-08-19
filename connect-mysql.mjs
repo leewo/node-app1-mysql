@@ -4,22 +4,30 @@ import { Client } from 'ssh2';
 import logger from './logger.mjs';
 
 let pool;
+let sshClient;
 
-export async function connectToMySQL(SSH_CONFIG, MYSQL_CONFIG) {
+const createPool = (config) => {
+    return mysql.createPool({
+        ...config,
+        connectionLimit: 10,
+        waitForConnections: true,
+        queueLimit: 0,
+    });
+};
+
+const connectToDatabase = async (SSH_CONFIG, MYSQL_CONFIG) => {
     return new Promise((resolve, reject) => {
-        const ssh = new Client();
+        sshClient = new Client();
 
-        ssh.on('ready', () => {
-            logger.info('SSH connection established');
-
-            ssh.forwardOut(
+        sshClient.on('ready', () => {
+            sshClient.forwardOut(
                 '127.0.0.1',
                 0,
                 MYSQL_CONFIG.host,
                 MYSQL_CONFIG.port,
                 async (err, stream) => {
                     if (err) {
-                        ssh.end();
+                        sshClient.end();
                         return reject(err);
                     }
 
@@ -30,41 +38,23 @@ export async function connectToMySQL(SSH_CONFIG, MYSQL_CONFIG) {
                     };
 
                     try {
-                        pool = mysql.createPool(poolConfig);
+                        pool = createPool(poolConfig);
                         logger.info('MySQL connection pool created');
-
-                        //// Test the connection and execute a query
-                        //const connection = await pool.getConnection();
-                        //try {
-                        //    logger.info('Successfully connected to MySQL database through SSH tunnel');
-
-                        //    // Execute the query
-                        //    const [rows, fields] = await connection.execute('SELECT * FROM TL_USERS');
-                        //    logger.info('Query result:', rows);
-
-                        //} catch (queryError) {
-                        //    logger.error('Error executing query:', queryError);
-                        //    reject(queryError);
-                        //} finally {
-                        //    // Release the connection back to the pool
-                        //    connection.release();
-                        //}
-
-                        resolve();
+                        resolve(pool);
                     } catch (error) {
-                        logger.error('Error connecting to MySQL:', error);
-                        ssh.end();
+                        logger.error('Error creating MySQL pool:', error);
+                        sshClient.end();
                         reject(error);
                     }
                 }
             );
         });
 
-        ssh.on('debug', (message) => {
+        sshClient.on('debug', (message) => {
             console.log('SSH Debug:', message);
         });
 
-        ssh.on('error', (err) => {
+        sshClient.on('error', (err) => {
             logger.error('SSH connection error:', err);
             logger.error('SSH config:', {
                 host: SSH_CONFIG.host,
@@ -76,26 +66,51 @@ export async function connectToMySQL(SSH_CONFIG, MYSQL_CONFIG) {
 
         });
 
-        ssh.connect(SSH_CONFIG);
+        sshClient.connect(SSH_CONFIG);
     });
-}
+};
 
-export function getPool() {
+export const getPool = async (SSH_CONFIG, MYSQL_CONFIG) => {
     if (!pool) {
-        throw new Error('MySQL pool not initialized. Call connectToMySQL first.');
+        try {
+            await connectToDatabase(SSH_CONFIG, MYSQL_CONFIG);
+        } catch (error) {
+            logger.error('Failed to connect to the database:', error);
+            throw error;
+        }
     }
     return pool;
-}
+};
 
-export function closeConnections() {
-    return new Promise((resolve) => {
-        if (pool) {
-            pool.end(() => {
-                logger.info('MySQL pool connections closed');
-                resolve();
-            });
-        } else {
-            resolve();
+export const executeQuery = async (query, params, SSH_CONFIG, MYSQL_CONFIG, retries = 3) => {
+    try {
+        const pool = await getPool(SSH_CONFIG, MYSQL_CONFIG);
+        const [results] = await pool.execute(query, params);
+        return results;
+    } catch (error) {
+        if (error.code === 'PROTOCOL_CONNECTION_LOST' && retries > 0) {
+            logger.warn(`Database connection was lost. Retrying... (${retries} attempts left)`);
+            pool = null; // Reset the pool
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+            return executeQuery(query, params, SSH_CONFIG, MYSQL_CONFIG, retries - 1);
         }
-    });
-}
+        logger.error('Database query error:', error);
+        throw error;
+    }
+};
+
+export const closeConnections = async () => {
+    if (pool) {
+        await pool.end();
+        logger.info('MySQL pool connections closed');
+    }
+    if (sshClient) {
+        sshClient.end();
+        logger.info('SSH connection closed');
+    }
+};
+
+process.on('SIGINT', async () => {
+    await closeConnections();
+    process.exit(0);
+});

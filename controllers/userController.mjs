@@ -5,37 +5,26 @@ import jwt from 'jsonwebtoken';
 import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
+import { executeQuery } from '../connect-mysql.mjs';
+import { SSH_CONFIG, MYSQL_CONFIG } from '../config.mjs';
 
 export const register = async (req, res) => {
-    let connection;
     try {
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const { name, email, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = {
-            USER_ID: req.body.email,
-            USER_NAME: req.body.name,
-            PASSWORD: hashedPassword
-        };
-
-        const pool = getPool();
-        connection = await pool.getConnection();
-        const [result] = await connection.execute(
+        const result = await executeQuery(
             'INSERT INTO TL_USERS (USER_ID, USER_NAME, PASSWORD) VALUES (?, ?, ?)',
-            [user.USER_ID, user.USER_NAME, user.PASSWORD]
+            [email, name, hashedPassword],
+            SSH_CONFIG,
+            MYSQL_CONFIG
         );
 
         logger.info('User registered successfully:', { userId: result.insertId });
-
         res.status(201).json({ message: 'User registered successfully', userId: result.insertId });
     } catch (error) {
         logger.error('Registration error:', error);
-        if (error.code === 'ETIMEDOUT') {
-            res.status(504).json({ message: 'Database connection timed out. Please try again later.' });
-        } else {
-            res.status(500).json({ message: 'Error registering user', error: error.message });
-        }
-    } finally {
-        if (connection) connection.release();
+        res.status(500).json({ message: 'Error registering user', error: error.message });
     }
 };
 
