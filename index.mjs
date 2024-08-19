@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 import express from 'express';
 import v1Routes from './routes/v1/index.mjs';
-import { connectToMySQL, closeConnections } from './connect-mysql.mjs';
+import { connectToDatabase } from './connect-mysql.mjs';
 import cors from 'cors';
 import { errorHandler, handleJWTError } from './middleware/errorHandler.mjs';
 import logger from './logger.mjs';
@@ -26,9 +26,9 @@ async function startServer() {
     const config = loadEnv();
     logger.info('Environment loaded:', config);
 
-    logger.info('try to connect connectToMySQL()');
-    await connectToMySQL(config.SSH_CONFIG, config.MYSQL_CONFIG);
-    logger.info('after connectToMySQL()');
+    logger.info('try to connect connectToDatabase()');
+    await connectToDatabase(config.SSH_CONFIG, config.MYSQL_CONFIG);
+    logger.info('after connectToDatabase()');
 
     const app = express();
     {

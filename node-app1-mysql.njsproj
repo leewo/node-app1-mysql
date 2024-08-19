@@ -54,6 +54,7 @@
     <Content Include="schema\tables.sql" />
     <Content Include="tests\user.test.mjs" />
     <Content Include="utils\errors.mjs" />
+    <Content Include="utils\shutdownHandler.mjs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="controllers\" />
