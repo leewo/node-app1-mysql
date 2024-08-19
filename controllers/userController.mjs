@@ -6,6 +6,7 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
+import { getConfig } from '../config.mjs';
 
 export const register = async (req, res) => {
     try {
@@ -76,7 +77,7 @@ export const getUser = async (req, res, next) => {
     try {
         const pool = await getPool();
         connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
+        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }

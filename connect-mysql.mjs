@@ -16,7 +16,7 @@ const createPool = (config) => {
     });
 };
 
-const connectToDatabase = async () => {
+export const connectToDatabase = async () => {
     const { SSH_CONFIG, MYSQL_CONFIG } = getConfig();
     return new Promise((resolve, reject) => {
         sshClient = new Client();
