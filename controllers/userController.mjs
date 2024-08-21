@@ -27,25 +27,28 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    let connection;
     try {
+        const { email, password } = req.body;
         const pool = await getPool();
-        connection = await pool.getConnection();
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.body.email]);
+
+        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [email]);
+
         if (users.length === 0) {
-            throw new AppError('Invalid email or password', 401);
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
+
         const user = users[0];
-        const validPassword = await bcrypt.compare(req.body.password, user.PASSWORD);
+        const validPassword = await bcrypt.compare(password, user.PASSWORD);
+
         if (!validPassword) {
-            throw new AppError('Invalid email or password', 401);
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
         const accessToken = generateAccessToken(user.USER_ID);
         const refreshToken = generateRefreshToken(user.USER_ID);
 
         // 리프레시 토큰을 데이터베이스에 저장
-        await executeQuery('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
+        await pool.execute('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
 
         res.cookie('access_token', accessToken, {
             httpOnly: true,                                 // 토큰을 HttpOnly 쿠키로 설정. 이는 클라이언트 측 JavaScript에서 쿠키에 접근할 수 없게 하여 XSS 공격으로부터 보호한다
@@ -61,14 +64,15 @@ export const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7일
         });
 
-        logger.info('User logged in successfully:', { userId: user.SEQ });
+        logger.info(`User logged in successfully: ${user.USER_ID}`);
 
-        res.status(200).json({ message: 'User logged in successfully' });
+        res.status(200).json({
+            message: 'User logged in successfully',
+            user: { USER_ID: user.USER_ID, USER_NAME: user.USER_NAME }
+        });
     } catch (error) {
         logger.error('Login error:', error);
-        res.status(400).json({ message: 'Error logging in', error: error.message });
-    } finally {
-        if (connection) connection.release();
+        res.status(500).json({ message: 'An error occurred during login' });
     }
 };
 
