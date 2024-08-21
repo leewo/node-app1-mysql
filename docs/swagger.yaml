@@ -115,6 +115,18 @@ paths:
                   message:
                     type: string
                     example: Invalid email or password
+  /api/v1/refresh:
+    post:
+      summary: Refresh access token
+      tags:
+        - Users
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Access token refreshed successfully
+        '401':
+          description: Invalid refresh token
   /api/v1/logout:
     post:
       summary: Log out a user
@@ -301,4 +313,6 @@ paths:
                   message:
                     type: string
                     example: Error updating user information
-tags: []
+tags:
+  - name: Users
+    description: User management and authentication
