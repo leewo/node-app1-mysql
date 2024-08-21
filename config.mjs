@@ -1,8 +1,8 @@
 // config.mjs
+
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,8 +15,8 @@ export function loadEnv() {
     dotenv.config({ path: join(__dirname, '.env') });
 
     const requiredEnvVars = [
-        'JWT_SECRET', 'NODE_ENV', 'LISTEN_PORT', 'SSH_HOST', 'SSH_PORT', 'SSH_USER',
-        'MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'
+        'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ACCESS_TOKEN_EXPIRY', 'REFRESH_TOKEN_EXPIRY',
+        'NODE_ENV', 'LISTEN_PORT', 'MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'
     ];
 
     const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -24,41 +24,29 @@ export function loadEnv() {
         throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     }
 
-    const privateKeyPath = join(__dirname, 'private_key', 'id_rsa');
-    if (!existsSync(privateKeyPath)) {
-        throw new Error(`Private key file not found at ${privateKeyPath}`);
-    }
-
     globalConfig = {
-        JWT_SECRET: process.env.JWT_SECRET,
         JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
         ACCESS_TOKEN_EXPIRY: process.env.ACCESS_TOKEN_EXPIRY,
         REFRESH_TOKEN_EXPIRY: process.env.REFRESH_TOKEN_EXPIRY,
         NODE_ENV: process.env.NODE_ENV,
         LISTEN_PORT: process.env.LISTEN_PORT,
-        SSH_CONFIG: {
-            host: process.env.SSH_HOST,
-            port: process.env.SSH_PORT || 22,
-            username: process.env.SSH_USER,
-            privateKey: readFileSync(privateKeyPath),
-            debug: console.log
-        },
         MYSQL_CONFIG: {
             host: process.env.MYSQL_HOST,
+            port: parseInt(process.env.MYSQL_PORT, 10),
             user: process.env.MYSQL_USER,
             password: process.env.MYSQL_PASSWORD,
             database: process.env.MYSQL_DATABASE,
-            port: parseInt(process.env.MYSQL_PORT, 10) || 3306
         },
         CORS_ORIGIN: process.env.CORS_ORIGIN
     };
 
     console.log('Listening on port:', globalConfig.LISTEN_PORT);
-    console.log('SSH Config:', {
-        host: globalConfig.SSH_CONFIG.host,
-        port: globalConfig.SSH_CONFIG.port,
-        username: globalConfig.SSH_CONFIG.username
+    console.log('MySQL Config:', {
+        host: globalConfig.MYSQL_CONFIG.host,
+        port: globalConfig.MYSQL_CONFIG.port,
+        user: globalConfig.MYSQL_CONFIG.user,
+        database: globalConfig.MYSQL_CONFIG.database
     });
 
     return globalConfig;

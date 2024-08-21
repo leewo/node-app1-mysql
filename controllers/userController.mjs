@@ -6,7 +6,7 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
-import { verifyRefreshToken, generateAccessToken } from '../utils/token.mjs';
+import { verifyRefreshToken, generateAccessToken, generateRefreshToken } from '../utils/token.mjs';
 
 export const register = async (req, res) => {
     try {
