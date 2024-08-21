@@ -1,5 +1,6 @@
 // index.mjs
 import { loadEnv } from './config.mjs';
+import { initTokenConfig } from './utils/token.mjs';
 
 import { fileURLToPath } from 'url';
 
@@ -25,6 +26,9 @@ import { gracefulShutdown } from './utils/shutdownHandler.mjs';
 async function startServer() {
     const config = loadEnv();
     logger.info('Environment loaded:', config);
+
+    // 토큰 설정 초기화
+    initTokenConfig();
 
     logger.info('try to connect connectToDatabase()');
     await connectToDatabase();

@@ -1,5 +1,5 @@
 // routes/v1/userRoutes.mjs
-import { register, login, logout, getUser, changePassword, updateUserInfo } from '../../controllers/userController.mjs';
+import { register, login, logout, getUser, changePassword, updateUserInfo, refresh } from '../../controllers/userController.mjs';
 import { authenticateToken } from '../../middleware/auth.mjs';
 import { registerValidator, validate } from '../../middleware/validators.mjs';
 import { Router } from 'express'; // ES 모듈 문법을 사용하여 express 패키지에서 Router를 직접 import
@@ -126,6 +126,8 @@ router.post('/register',
  *                   example: Invalid email or password
  */
 router.post('/login', login);
+
+router.post('/refresh', refresh);
 
 /**
  * @swagger

@@ -6,7 +6,7 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { getPool } from '../connect-mysql.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
-import { getConfig } from '../config.mjs';
+import { verifyRefreshToken, generateAccessToken } from '../utils/token.mjs';
 
 export const register = async (req, res) => {
     try {
@@ -41,19 +41,24 @@ export const login = async (req, res) => {
             throw new AppError('Invalid email or password', 401);
         }
 
-        const { JWT_SECRET } = getConfig();
-        const token = jwt.sign(
-            { USER_ID: user.USER_ID },
-            JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+        const accessToken = generateAccessToken(user.USER_ID);
+        const refreshToken = generateRefreshToken(user.USER_ID);
 
-        // HttpOnly 쿠키로 토큰 설정
-        res.cookie('auth-token', token, {
+        // 리프레시 토큰을 데이터베이스에 저장
+        await executeQuery('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
+
+        res.cookie('access_token', accessToken, {
             httpOnly: true,                                 // 토큰을 HttpOnly 쿠키로 설정. 이는 클라이언트 측 JavaScript에서 쿠키에 접근할 수 없게 하여 XSS 공격으로부터 보호한다
             secure: process.env.NODE_ENV === 'production',  // 프로덕션 환경에서는 secure 옵션을 true로 설정하여 HTTPS에서만 쿠키가 전송되도록 한다
             sameSite: 'strict',                             // sameSite 옵션을 'strict'로 설정하여 쿠키가 동일 출처에서만 전송되도록 한다. CSRF 공격을 방지하기 위한 것
-            maxAge: 24 * 60 * 60 * 1000                     // maxAge 옵션을 사용하여 쿠키의 만료 시간을 설정. 이 경우 24시간
+            maxAge: 15 * 60 * 1000 // 15분
+        });
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7일
         });
 
         logger.info('User logged in successfully:', { userId: user.SEQ });
@@ -67,10 +72,42 @@ export const login = async (req, res) => {
     }
 };
 
-export const logout = (req, res) => {
-    res.clearCookie('auth-token');
+export const refresh = async (req, res) => {
+    const refreshToken = req.cookies.refresh_token;
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh token not found' });
+    }
+
+    try {
+        const decoded = verifyRefreshToken(refreshToken);
+        const [users] = await executeQuery('SELECT * FROM TL_USERS WHERE USER_ID = ? AND REFRESH_TOKEN = ?', [decoded.userId, refreshToken]);
+
+        if (users.length === 0) {
+            return res.status(403).json({ message: 'Invalid refresh token' });
+        }
+
+        const newAccessToken = generateAccessToken(decoded.userId);
+        res.cookie('access_token', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000 // 15분
+        });
+
+        res.status(200).json({ message: 'Access token refreshed successfully' });
+    } catch (error) {
+        res.status(403).json({ message: 'Invalid refresh token' });
+    }
+};
+
+
+export const logout = async (req, res) => {
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    // 데이터베이스에서 리프레시 토큰 제거
+    await executeQuery('UPDATE TL_USERS SET REFRESH_TOKEN = NULL WHERE USER_ID = ?', [req.user.USER_ID]);
     res.status(200).json({ message: 'User logged out successfully' });
-}
+};
 
 export const getUser = async (req, res, next) => {
     let connection;
@@ -123,7 +160,7 @@ export const updateUserInfo = async (req, res, next) => {
             throw new AppError('User not found', 404);
         }
         const user = users[0];
-        const oldUserInfo = { name: user.USER_NAME, email: user.USER_ID};
+        const oldUserInfo = { name: user.USER_NAME, email: user.USER_ID };
         const newName = req.body.name || user.USER_NAME;
         const newEmail = req.body.email || user.USER_ID;
         await connection.execute('UPDATE TL_USERS SET USER_NAME = ?, USER_ID = ? WHERE USER_ID = ?', [newName, newEmail, user.USER_ID]);
