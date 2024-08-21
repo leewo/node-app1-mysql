@@ -118,11 +118,18 @@ export const logout = async (req, res) => {
 
 export const getUser = async (req, res, next) => {
     try {
+        // 사용자가 인증되지 않은 경우 처리
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
         console.log('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         const users = await executeQuery('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
+
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
+
         res.status(200).json({ message: 'User retrieved successfully', user: users[0] });
     } catch (error) {
         logger.error('Error getting user:', error);

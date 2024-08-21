@@ -23,10 +23,7 @@ export const authenticateToken = async (req, res, next) => {
         }
         next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            req.user = null;
-            return next();
-        }
-        next(error);
+        req.user = null;
+        next();
     }
 };
