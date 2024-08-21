@@ -1,5 +1,3 @@
-// utils/shutdownHandler.mjs
-
 import logger from '../logger.mjs';
 import { closeConnections } from '../connect-mysql.mjs';
 
