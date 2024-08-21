@@ -1,12 +1,19 @@
 // routes/v1/userRoutes.mjs
 import { register, login, logout, getUser, changePassword, updateUserInfo, refresh } from '../../controllers/userController.mjs';
-import { authenticateToken } from '../../middleware/auth.mjs';
+import { authenticateToken, requireAuth } from '../../middleware/auth.mjs';
 import { registerValidator, validate } from '../../middleware/validators.mjs';
 import { Router } from 'express'; // ES 모듈 문법을 사용하여 express 패키지에서 Router를 직접 import
 // 중괄호 { } 를 사용하는 것은 named import를 의미하며, express 모듈에서 Router라는 이름의 export를 가져온다
 import logger from '../../logger.mjs';
 
 const router = Router();          // import한 Router 함수를 호출하여 새로운 router 인스턴스를 생성. 이 부분은 CommonJS 문법과 동일
+
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management and authentication
+ */
 
 /**
  * @swagger
@@ -127,6 +134,20 @@ router.post('/register',
  */
 router.post('/login', login);
 
+/**
+ * @swagger
+ * /api/v1/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Access token refreshed successfully
+ *       401:
+ *         description: Invalid refresh token
+ */
 router.post('/refresh', refresh);
 
 /**
@@ -159,7 +180,7 @@ router.post('/refresh', refresh);
  *                   type: string
  *                   example: Unauthorized
  */
-router.post('/logout', authenticateToken, logout);
+router.post('/logout', authenticateToken, requireAuth, logout);
 
 /**
  * @swagger
@@ -213,7 +234,7 @@ router.post('/logout', authenticateToken, logout);
  *                   type: string
  *                   example: User not found
  */
-router.get('/user', authenticateToken, getUser);
+router.get('/user', authenticateToken, requireAuth, getUser);
 
 /**
  * @swagger
@@ -273,7 +294,7 @@ router.get('/user', authenticateToken, getUser);
  *                   type: string
  *                   example: Unauthorized
  */
-router.post('/change-password', authenticateToken, changePassword);
+router.post('/change-password', authenticateToken, requireAuth, changePassword);
 
 /**
  * @swagger
@@ -329,6 +350,6 @@ router.post('/change-password', authenticateToken, changePassword);
  *                   type: string
  *                   example: Error updating user information
  */
-router.post('/update-info', authenticateToken, updateUserInfo);
+router.post('/update-info', authenticateToken, requireAuth, updateUserInfo);
 
 export default router;
