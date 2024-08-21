@@ -1,10 +1,8 @@
 // controllers/userController.mjs
 
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
-import { getPool } from '../connect-mysql.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
 import { verifyRefreshToken, generateAccessToken, generateRefreshToken } from '../utils/token.mjs';
 
@@ -29,9 +27,8 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const pool = await getPool();
-        console.log('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [email]);
-        const [users] = await pool.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [email]);
+        console.log('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [email]);
+        const users = await executeQuery('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [email]);
 
         if (users.length === 0) {
             console.error('Invalid email or password 1');
@@ -53,7 +50,7 @@ export const login = async (req, res) => {
 
         // 리프레시 토큰을 데이터베이스에 저장
         console.log('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
-        await pool.execute('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
+        await executeQuery('UPDATE TL_USERS SET REFRESH_TOKEN = ? WHERE USER_ID = ?', [refreshToken, user.USER_ID]);
 
         res.cookie('access_token', accessToken, {
             httpOnly: true,                                 // 토큰을 HttpOnly 쿠키로 설정. 이는 클라이언트 측 JavaScript에서 쿠키에 접근할 수 없게 하여 XSS 공격으로부터 보호한다
@@ -90,7 +87,7 @@ export const refresh = async (req, res) => {
     try {
         const decoded = verifyRefreshToken(refreshToken);
         console.log('SELECT * FROM TL_USERS WHERE USER_ID = ? AND REFRESH_TOKEN = ?', [decoded.userId, refreshToken]);
-        const [users] = await executeQuery('SELECT * FROM TL_USERS WHERE USER_ID = ? AND REFRESH_TOKEN = ?', [decoded.userId, refreshToken]);
+        const users = await executeQuery('SELECT * FROM TL_USERS WHERE USER_ID = ? AND REFRESH_TOKEN = ?', [decoded.userId, refreshToken]);
 
         if (users.length === 0) {
             return res.status(403).json({ message: 'Invalid refresh token' });
@@ -110,7 +107,6 @@ export const refresh = async (req, res) => {
     }
 };
 
-
 export const logout = async (req, res) => {
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
@@ -121,30 +117,23 @@ export const logout = async (req, res) => {
 };
 
 export const getUser = async (req, res, next) => {
-    let connection;
     try {
-        const pool = await getPool();
-        connection = await pool.getConnection();
         console.log('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
+        const users = await executeQuery('SELECT SEQ, USER_ID, USER_NAME FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
         res.status(200).json({ message: 'User retrieved successfully', user: users[0] });
     } catch (error) {
+        logger.error('Error getting user:', error);
         next(new AppError('Error getting user', 500));
-    } finally {
-        if (connection) connection.release();
     }
 };
 
 export const changePassword = async (req, res, next) => {
-    let connection;
     try {
-        const pool = await getPool();
-        connection = await pool.getConnection();
         console.log('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
+        const users = await executeQuery('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             return next(new AppError('User not found', 404));
         }
@@ -154,23 +143,19 @@ export const changePassword = async (req, res, next) => {
             throw new AppError('Current password is incorrect', 400);
         }
         const hashedNewPassword = await bcrypt.hash(req.body.newPassword, 10);
-        console.log('UPDATE TL_USERS SET password = ? WHERE USER_ID = ?', [hashedNewPassword, user.USER_ID]);
-        await connection.execute('UPDATE TL_USERS SET password = ? WHERE USER_ID = ?', [hashedNewPassword, user.USER_ID]);
+        console.log('UPDATE TL_USERS SET PASSWORD = ? WHERE USER_ID = ?', [hashedNewPassword, user.USER_ID]);
+        await executeQuery('UPDATE TL_USERS SET PASSWORD = ? WHERE USER_ID = ?', [hashedNewPassword, user.USER_ID]);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
+        logger.error('Error changing password:', error);
         next(new AppError('Error changing password', 500));
-    } finally {
-        if (connection) connection.release();
     }
 };
 
 export const updateUserInfo = async (req, res, next) => {
-    let connection;
     try {
-        const pool = await getPool();
-        connection = await pool.getConnection();
         console.log('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
-        const [users] = await connection.execute('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
+        const users = await executeQuery('SELECT SEQ, USER_ID, USER_NAME, PASSWORD FROM TL_USERS WHERE USER_ID = ?', [req.user.USER_ID]);
         if (users.length === 0) {
             throw new AppError('User not found', 404);
         }
@@ -179,13 +164,11 @@ export const updateUserInfo = async (req, res, next) => {
         const newName = req.body.name || user.USER_NAME;
         const newEmail = req.body.email || user.USER_ID;
         console.log('UPDATE TL_USERS SET USER_NAME = ?, USER_ID = ? WHERE USER_ID = ?', [newName, newEmail, user.USER_ID]);
-        await connection.execute('UPDATE TL_USERS SET USER_NAME = ?, USER_ID = ? WHERE USER_ID = ?', [newName, newEmail, user.USER_ID]);
+        await executeQuery('UPDATE TL_USERS SET USER_NAME = ?, USER_ID = ? WHERE USER_ID = ?', [newName, newEmail, user.USER_ID]);
         logger.info(`User info updated. Old: ${JSON.stringify(oldUserInfo)}, New: ${JSON.stringify({ name: newName, email: newEmail })}`);
         res.status(200).json({ message: 'User information updated successfully' });
     } catch (error) {
         logger.error(`Error updating user information: ${error.message}`);
         next(new AppError('Error updating user information', 500));
-    } finally {
-        if (connection) connection.release();
     }
 };
