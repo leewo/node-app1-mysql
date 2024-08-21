@@ -13,11 +13,11 @@ export const gracefulShutdown = async (signal) => {
     logger.info(`${signal} received. Starting graceful shutdown...`);
 
     try {
-        // MySQL ¿¬°á Á¾·á
+        // MySQL ì—°ê²° ì¢…ë£Œ
         await closeConnections();
         logger.info('MySQL connections closed.');
 
-        // ¿©±â¿¡ ´Ù¸¥ ¸®¼Ò½º Á¤¸® ÀÛ¾÷ Ãß°¡ (¿¹: Redis ¿¬°á Á¾·á, ÆÄÀÏ ÇÚµé·¯ Á¤¸® µî)
+        // ì—¬ê¸°ì— ë‹¤ë¥¸ ë¦¬ì†ŒìŠ¤ ì •ë¦¬ ì‘ì—… ì¶”ê°€ (ì˜ˆ: Redis ì—°ê²° ì¢…ë£Œ, íŒŒì¼ í•¸ë“¤ëŸ¬ ì •ë¦¬ ë“±)
 
         logger.info('Graceful shutdown completed.');
         process.exit(0);
