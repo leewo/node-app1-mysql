@@ -36,11 +36,13 @@
     <Content Include="babel.config.cjs" />
     <Content Include="config.mjs" />
     <Content Include="connect-mysql.mjs" />
+    <Content Include="controllers\apartmentController.mjs" />
     <Content Include="index.mjs" />
     <Content Include="logger.mjs" />
     <Content Include="nodemon.json" />
     <Content Include="package.json" />
     <Content Include="README.md" />
+    <Content Include="routes\v1\apartmentRoutes.mjs" />
     <Content Include="swaggerConfig.js" />
     <Content Include="controllers\userController.mjs" />
     <Content Include="docs\index.html" />

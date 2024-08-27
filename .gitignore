@@ -3,3 +3,7 @@
 /.vs
 /obj
 /bin
+/*.log
+/private_key
+/백엔드 전체 코드.txt
+/질문-org.txt
