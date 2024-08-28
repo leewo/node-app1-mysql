@@ -13,20 +13,19 @@ export const getApartmentClusters = async (req, res) => {
         const safeMinPrice = minPrice !== undefined ? parseInt(minPrice) : 0;
         const safeMaxPrice = maxPrice !== undefined ? parseInt(maxPrice) : Infinity;
 
-        let query = `
-      SELECT 
-        FLOOR((latitude - ?) / ? * 10) as latGrid,
-        FLOOR((longitude - ?) / ? * 10) as lngGrid,
-        COUNT(*) as count,
-        AVG(latitude) as avgLat,
-        AVG(longitude) as avgLng
-      FROM real_apartment_info rai
-      JOIN real_price_hist rph ON rai.complexNo = rph.complexNo
-      WHERE latitude BETWEEN ? AND ?
-        AND longitude BETWEEN ? AND ?
-        AND rph.dealPriceMin >= ?
-        AND rph.dealPriceMax <= ?
-    `;
+        let query = `SELECT 
+                       FLOOR((rai.latitude - ?) / ? * 10) as latGrid,
+                       FLOOR((rai.longitude - ?) / ? * 10) as lngGrid,
+                       COUNT(*) as count,
+                       AVG(rai.latitude) as avgLat,
+                       AVG(rai.longitude) as avgLng
+                     FROM real_apartment_info rai
+                     JOIN real_price_hist rph ON rai.complexNo = rph.complexNo
+                     WHERE rai.latitude BETWEEN ? AND ?
+                       AND rai.longitude BETWEEN ? AND ?
+                       AND rph.dealPriceMin >= ?
+                       AND rph.dealPriceMax <= ?
+                    `;
 
         const params = [safeMinLat, (safeMaxLat - safeMinLat), safeMinLng, (safeMaxLng - safeMinLng),
             safeMinLat, safeMaxLat, safeMinLng, safeMaxLng, safeMinPrice, safeMaxPrice];

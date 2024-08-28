@@ -42,7 +42,11 @@ export const executeQuery = async (query, params, retries = 3) => {
         const pool = await getPool();
 
         // 쿼리와 파라미터 로깅
-        logger.info('Executing query:', { query, params });
+        const formattedQuery = query.replace(/\s+/g, ' ').trim(); // 여러 공백을 하나로 줄이고 앞뒤 공백 제거
+        logger.info('Executing query:', {
+            query: util.inspect(formattedQuery, { depth: null, colors: false }),
+            params: util.inspect(params, { depth: null, colors: false })
+        });
 
         const start = Date.now(); // 쿼리 실행 시작 시간
 
@@ -55,20 +59,20 @@ export const executeQuery = async (query, params, retries = 3) => {
 
         // 쿼리 실행 결과 로깅
         logger.info('Query executed successfully', {
-            query,
-            params: safeParams,
+            query: util.inspect(formattedQuery, { depth: null, colors: false }),
+            params: util.inspect(safeParams, { depth: null, colors: false }),
             duration: `${duration}ms`,
             rowCount: results.length
         });
 
         return results;
     } catch (error) {
-        if (error.code === 'ECONNREFUSED' && retries > 0) {
-            logger.warn(`Database connection was refused. Retrying... (${retries} attempts left)`);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-            return executeQuery(query, params, retries - 1);
-        }
-        logger.error('Database query error:', { error, query, params });
+        const formattedQuery = query.replace(/\s+/g, ' ').trim();
+        logger.error('Database query error:', {
+            error: util.inspect(error, { depth: null, colors: false }),
+            query: util.inspect(formattedQuery, { depth: null, colors: false }),
+            params: util.inspect(params, { depth: null, colors: false })
+        });
         throw error;
     }
 };
