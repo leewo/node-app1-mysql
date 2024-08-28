@@ -4,6 +4,8 @@ import { executeQuery } from '../connect-mysql.mjs';
 
 export const getApartments = async (req, res, next) => {
     try {
+        const { minLat, maxLat, minLng, maxLng } = req.query;
+
         const apartments = await executeQuery(`
             SELECT 
                 dong_code,
@@ -13,7 +15,10 @@ export const getApartments = async (req, res, next) => {
                 longitude,
                 complexNo
             FROM real_apartment_info
-        `);
+            WHERE latitude BETWEEN ? AND ?
+            AND longitude BETWEEN ? AND ?
+            LIMIT 1000
+        `, [minLat, maxLat, minLng, maxLng]);
 
         res.status(200).json(apartments);
     } catch (error) {
@@ -42,6 +47,7 @@ export const getPriceHistory = async (req, res, next) => {
             FROM real_price_hist
             WHERE Date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
             ORDER BY complexNo, Date
+            Limit 100
         `);
 
         const formattedPriceHistory = priceHistory.reduce((acc, row) => {
