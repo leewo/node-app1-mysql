@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import logger from './logger.mjs';
 import { getConfig } from './config.mjs';
+import util from 'util';
 
 let pool;
 
@@ -41,11 +42,13 @@ export const executeQuery = async (query, params, retries = 3) => {
     try {
         const pool = await getPool();
 
-        // 쿼리와 파라미터 로깅
-        const formattedQuery = query.replace(/\s+/g, ' ').trim(); // 여러 공백을 하나로 줄이고 앞뒤 공백 제거
+        // 쿼리와 파라미터를 합쳐서 포맷팅
+        const formattedQuery = query.replace(/\?/g, (match, index) => {
+            return params[index] === undefined ? 'null' : params[index];
+        }).replace(/\s+/g, ' ').trim();
+
         logger.info('Executing query:', {
-            query: util.inspect(formattedQuery, { depth: null, colors: false }),
-            params: util.inspect(params, { depth: null, colors: false })
+            query: util.inspect(formattedQuery, { depth: null, colors: false })
         });
 
         const start = Date.now(); // 쿼리 실행 시작 시간
