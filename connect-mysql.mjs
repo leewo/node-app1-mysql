@@ -42,7 +42,9 @@ export const getPool = async () => {
 export const executeQuery = async (query, params, retries = 3) => {
     try {
         const pool = await getPool();
-        const [results] = await pool.execute(query, params);
+        // undefined 값을 null로 변환
+        const safeParams = params ? params.map(param => param === undefined ? null : param) : [];
+        const [results] = await pool.execute(query, safeParams);
         return results;
     } catch (error) {
         if (error.code === 'ECONNREFUSED' && retries > 0) {

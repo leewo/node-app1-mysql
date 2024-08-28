@@ -2,24 +2,35 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
 
-export const getApartments = async (req, res, next) => {
+export const getApartments = async (req, res) => {
     try {
-        const { minLat, maxLat, minLng, maxLng } = req.query;
+        const { minLat, maxLat, minLng, maxLng, limit = 1000 } = req.query;
 
-        const apartments = await executeQuery(`
-            SELECT 
+        const safeMinLat = minLat !== undefined ? parseFloat(minLat) : null;
+        const safeMaxLat = maxLat !== undefined ? parseFloat(maxLat) : null;
+        const safeMinLng = minLng !== undefined ? parseFloat(minLng) : null;
+        const safeMaxLng = maxLng !== undefined ? parseFloat(maxLng) : null;
+        const safeLimit = Math.min(parseInt(limit), 1000); // 최대 1000개로 제한
+
+        let query = `SELECT 
                 dong_code,
                 Address2, 
                 name,
                 latitude, 
                 longitude,
                 complexNo
-            FROM real_apartment_info
-            WHERE latitude BETWEEN ? AND ?
-            AND longitude BETWEEN ? AND ?
-            LIMIT 1000
-        `, [minLat, maxLat, minLng, maxLng]);
+            FROM real_apartment_info`;
+        let params = [];
 
+        if (safeMinLat !== null && safeMaxLat !== null && safeMinLng !== null && safeMaxLng !== null) {
+            query += ' WHERE latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?';
+            params = [safeMinLat, safeMaxLat, safeMinLng, safeMaxLng];
+        }
+
+        query += ' LIMIT ?';
+        params.push(safeLimit);
+
+        const apartments = await executeQuery(query, params);
         res.status(200).json(apartments);
     } catch (error) {
         logger.error('Error fetching apartments:', error);
