@@ -6,12 +6,12 @@ export const getApartmentClusters = async (req, res) => {
     try {
         const { minLat, maxLat, minLng, maxLng, minPrice, maxPrice, area, type } = req.query;
 
-        const safeMinLat = minLat !== undefined ? parseFloat(minLat) : null;
-        const safeMaxLat = maxLat !== undefined ? parseFloat(maxLat) : null;
-        const safeMinLng = minLng !== undefined ? parseFloat(minLng) : null;
-        const safeMaxLng = maxLng !== undefined ? parseFloat(maxLng) : null;
+        const safeMinLat = minLat !== undefined ? parseFloat(minLat) : -90;
+        const safeMaxLat = maxLat !== undefined ? parseFloat(maxLat) : 90;
+        const safeMinLng = minLng !== undefined ? parseFloat(minLng) : -180;
+        const safeMaxLng = maxLng !== undefined ? parseFloat(maxLng) : 180;
         const safeMinPrice = minPrice !== undefined ? parseInt(minPrice) : 0;
-        const safeMaxPrice = maxPrice !== undefined ? parseInt(maxPrice) : Infinity;
+        const safeMaxPrice = maxPrice !== undefined ? parseInt(maxPrice) : 999999999999;
 
         let query = `SELECT 
                        FLOOR((rai.latitude - ?) / ? * 10) as latGrid,
@@ -49,7 +49,7 @@ export const getApartmentClusters = async (req, res) => {
             count: cluster.count
         }));
 
-        res.json(formattedClusters);
+        res.status(200).json(formattedClusters);
     } catch (error) {
         console.error('Error fetching apartment clusters:', error);
         res.status(500).json({ message: 'Error fetching apartment clusters', error: error.message });
