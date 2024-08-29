@@ -4,7 +4,7 @@ import { executeQuery } from '../connect-mysql.mjs';
 
 export const getApartmentClusters = async (req, res) => {
     try {
-        const { minLat, maxLat, minLng, maxLng, minPrice, maxPrice, area, type } = req.query;
+        const { minLat, maxLat, minLng, maxLng, area } = req.query;
 
         const parseFloatOrDefault = (value, defaultValue) => {
             const parsed = parseFloat(value);
@@ -20,39 +20,35 @@ export const getApartmentClusters = async (req, res) => {
         const safeMaxLat = parseFloatOrDefault(maxLat, 90);
         const safeMinLng = parseFloatOrDefault(minLng, -180);
         const safeMaxLng = parseFloatOrDefault(maxLng, 180);
-        const safeMinPrice = parseIntOrDefault(minPrice, 0);
-        const safeMaxPrice = parseIntOrDefault(maxPrice, 999999999999); // 적절한 최대값 설정
 
-        let query = `SELECT 
-                       FLOOR((rai.latitude - ?) / ? * 10) as latGrid,
-                       FLOOR((rai.longitude - ?) / ? * 10) as lngGrid,
-                       COUNT(*) as count,
-                       AVG(rai.latitude) as avgLat,
-                       AVG(rai.longitude) as avgLng
-                     FROM real_apartment_info rai
-                     JOIN real_price_hist rph FORCE INDEX (idx_complexNo_dealPrices)
-                       ON rai.complexNo = rph.complexNo
-                       AND rph.dealPriceMin >= ?
-                       AND rph.dealPriceMax <= ?
-                     WHERE rai.latitude BETWEEN ? AND ?
-                       AND rai.longitude BETWEEN ? AND ?
-                    `;
+        let query = `
+            SELECT 
+              FLOOR((latitude - ?) / ? * 10) AS latGrid,
+              FLOOR((longitude - ?) / ? * 10) AS lngGrid,
+              COUNT(*) AS count,
+              AVG(latitude) AS avgLat,
+              AVG(longitude) AS avgLng
+            FROM real_apartment_info
+            WHERE latitude BETWEEN ? AND ?
+              AND longitude BETWEEN ? AND ?
+        `;
 
-        const params = [safeMinLat, (safeMaxLat - safeMinLat), safeMinLng, (safeMaxLng - safeMinLng),
-            safeMinPrice, safeMaxPrice, safeMinLat, safeMaxLat, safeMinLng, safeMaxLng];
+        const params = [
+            safeMinLat, (safeMaxLat - safeMinLat),
+            safeMinLng, (safeMaxLng - safeMinLng),
+            safeMinLat, safeMaxLat,
+            safeMinLng, safeMaxLng
+        ];
 
         if (area !== 'all') {
-            query += ' AND rai.Area = ?';
+            query += ' AND Area = ?';
             params.push(parseIntOrDefault(area, 0));
         }
 
-        if (type !== 'all') {
-            query += type === '매매' ? ' AND rph.dealPriceMin > 0' : ' AND rph.leasePriceMin > 0';
-        }
-
-        query += ` GROUP BY latGrid, lngGrid
-                   WITH ROLLUP
-                   HAVING latGrid IS NOT NULL AND lngGrid IS NOT NULL`;
+        query += `
+            GROUP BY latGrid, lngGrid
+            HAVING latGrid IS NOT NULL AND lngGrid IS NOT NULL
+        `;
 
         const clusters = await executeQuery(query, params);
 
