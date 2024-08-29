@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getApartments, getApartmentClusters, getPriceHistory } from '../../controllers/apartmentController.mjs';
+import { getApartments, getApartmentClusters, getApartmentsInCluster, getPriceHistory } from '../../controllers/apartmentController.mjs';
 
 const router = Router();
 
@@ -35,6 +35,7 @@ const router = Router();
 router.get('/apartments', getApartments);
 
 router.get('/apartment-clusters', getApartmentClusters);
+router.get('/apartments-in-cluster', getApartmentsInCluster);
 
 /**
  * @swagger
