@@ -6,12 +6,22 @@ export const getApartmentClusters = async (req, res) => {
     try {
         const { minLat, maxLat, minLng, maxLng, minPrice, maxPrice, area, type } = req.query;
 
-        const safeMinLat = minLat !== undefined ? parseFloat(minLat) : -90;
-        const safeMaxLat = maxLat !== undefined ? parseFloat(maxLat) : 90;
-        const safeMinLng = minLng !== undefined ? parseFloat(minLng) : -180;
-        const safeMaxLng = maxLng !== undefined ? parseFloat(maxLng) : 180;
-        const safeMinPrice = minPrice !== undefined ? parseInt(minPrice) : 0;
-        const safeMaxPrice = maxPrice !== undefined ? parseInt(maxPrice) : 999999999999;
+        const parseFloatOrDefault = (value, defaultValue) => {
+            const parsed = parseFloat(value);
+            return isNaN(parsed) || value === 'Infinity' ? defaultValue : parsed;
+        };
+
+        const parseIntOrDefault = (value, defaultValue) => {
+            const parsed = parseInt(value);
+            return isNaN(parsed) || value === 'Infinity' ? defaultValue : parsed;
+        };
+
+        const safeMinLat = parseFloatOrDefault(minLat, -90);
+        const safeMaxLat = parseFloatOrDefault(maxLat, 90);
+        const safeMinLng = parseFloatOrDefault(minLng, -180);
+        const safeMaxLng = parseFloatOrDefault(maxLng, 180);
+        const safeMinPrice = parseIntOrDefault(minPrice, 0);
+        const safeMaxPrice = parseIntOrDefault(maxPrice, 999999999999); // 적절한 최대값 설정
 
         let query = `SELECT 
                        FLOOR((rai.latitude - ?) / ? * 10) as latGrid,
@@ -32,7 +42,7 @@ export const getApartmentClusters = async (req, res) => {
 
         if (area !== 'all') {
             query += ' AND rai.Area = ?';
-            params.push(parseInt(area));
+            params.push(parseIntOrDefault(area, 0));
         }
 
         if (type !== 'all') {

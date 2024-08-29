@@ -43,12 +43,10 @@ export const executeQuery = async (query, params, retries = 3) => {
         const pool = await getPool();
 
         // 쿼리와 파라미터를 합쳐서 포맷팅
-        const formattedQuery = query.replace(/\?/g, (match, index) => {
-            return params[index] === undefined ? 'null' : params[index];
-        }).replace(/\s+/g, ' ').trim();
+        const formattedQuery = mysql.format(query, params);
 
         logger.info('Executing query:', {
-            query: util.inspect(formattedQuery, { depth: null, colors: false })
+            formattedQuery: formattedQuery.replace(/\s+/g, ' ').trim()
         });
 
         const start = Date.now(); // 쿼리 실행 시작 시간
