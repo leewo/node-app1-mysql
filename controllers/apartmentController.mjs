@@ -89,6 +89,8 @@ export const getApartmentClusters = async (req, res) => {
         const clusters = await executeQuery(query, params);
 
         const formattedClusters = clusters.map(cluster => ({
+            latGrid: cluster.latGrid,
+            lngGrid: cluster.lngGrid,
             latitude: cluster.avgLat,
             longitude: cluster.avgLng,
             count: cluster.count,
