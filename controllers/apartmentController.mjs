@@ -30,15 +30,16 @@ export const getApartmentClusters = async (req, res) => {
                        AVG(rai.latitude) as avgLat,
                        AVG(rai.longitude) as avgLng
                      FROM real_apartment_info rai
-                     JOIN real_price_hist rph ON rai.complexNo = rph.complexNo
-                     WHERE rai.latitude BETWEEN ? AND ?
-                       AND rai.longitude BETWEEN ? AND ?
+                     JOIN real_price_hist rph FORCE INDEX (idx_complexNo_dealPrices)
+                       ON rai.complexNo = rph.complexNo
                        AND rph.dealPriceMin >= ?
                        AND rph.dealPriceMax <= ?
+                     WHERE rai.latitude BETWEEN ? AND ?
+                       AND rai.longitude BETWEEN ? AND ?
                     `;
 
         const params = [safeMinLat, (safeMaxLat - safeMinLat), safeMinLng, (safeMaxLng - safeMinLng),
-            safeMinLat, safeMaxLat, safeMinLng, safeMaxLng, safeMinPrice, safeMaxPrice];
+            safeMinPrice, safeMaxPrice, safeMinLat, safeMaxLat, safeMinLng, safeMaxLng];
 
         if (area !== 'all') {
             query += ' AND rai.Area = ?';
@@ -49,7 +50,9 @@ export const getApartmentClusters = async (req, res) => {
             query += type === '매매' ? ' AND rph.dealPriceMin > 0' : ' AND rph.leasePriceMin > 0';
         }
 
-        query += ' GROUP BY latGrid, lngGrid';
+        query += ` GROUP BY latGrid, lngGrid
+                   WITH ROLLUP
+                   HAVING latGrid IS NOT NULL AND lngGrid IS NOT NULL`;
 
         const clusters = await executeQuery(query, params);
 
