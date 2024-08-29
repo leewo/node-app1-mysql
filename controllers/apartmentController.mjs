@@ -2,6 +2,41 @@ import logger from '../logger.mjs';
 import { AppError } from '../utils/errors.mjs';
 import { executeQuery } from '../connect-mysql.mjs';
 
+export const getApartmentsInCluster = async (req, res) => {
+    try {
+        const { latGrid, lngGrid, minLat, maxLat, minLng, maxLng } = req.query;
+
+        const query = `
+            SELECT 
+                dong_code,
+                Address2, 
+                name,
+                latitude, 
+                longitude,
+                complexNo
+            FROM real_apartment_info
+            WHERE FLOOR((latitude - ?) / ? * 10) = ?
+              AND FLOOR((longitude - ?) / ? * 10) = ?
+              AND latitude BETWEEN ? AND ?
+              AND longitude BETWEEN ? AND ?
+            LIMIT 100
+        `;
+
+        const params = [
+            minLat, (maxLat - minLat), parseInt(latGrid),
+            minLng, (maxLng - minLng), parseInt(lngGrid),
+            minLat, maxLat,
+            minLng, maxLng
+        ];
+
+        const apartments = await executeQuery(query, params);
+        res.status(200).json(apartments);
+    } catch (error) {
+        console.error('Error fetching apartments in cluster:', error);
+        res.status(500).json({ message: 'Error fetching apartments in cluster', error: error.message });
+    }
+};
+
 export const getApartmentClusters = async (req, res) => {
     try {
         const { minLat, maxLat, minLng, maxLng, area } = req.query;
@@ -27,7 +62,8 @@ export const getApartmentClusters = async (req, res) => {
               FLOOR((longitude - ?) / ? * 10) AS lngGrid,
               COUNT(*) AS count,
               AVG(latitude) AS avgLat,
-              AVG(longitude) AS avgLng
+              AVG(longitude) AS avgLng,
+              GROUP_CONCAT(CONCAT_WS('|', name, Address2, latitude, longitude, complexNo) SEPARATOR ';;') AS apartments
             FROM real_apartment_info
             WHERE latitude BETWEEN ? AND ?
               AND longitude BETWEEN ? AND ?
@@ -55,7 +91,11 @@ export const getApartmentClusters = async (req, res) => {
         const formattedClusters = clusters.map(cluster => ({
             latitude: cluster.avgLat,
             longitude: cluster.avgLng,
-            count: cluster.count
+            count: cluster.count,
+            apartments: cluster.apartments.split(';;').map(apt => {
+                const [name, address, lat, lng, complexNo] = apt.split('|');
+                return { name, address, latitude: parseFloat(lat), longitude: parseFloat(lng), complexNo: parseInt(complexNo) };
+            })
         }));
 
         res.status(200).json(formattedClusters);
